@@ -26,16 +26,16 @@ import (
 // Genesis hashes to enforce below configs on.
 var (
 	// Progpow GenesisHashes
-	ProgpowColosseumGenesisHash = common.HexToHash("0x937e935af7be23cee3a138dcc0e1a0ba1ccf2c9d085d144d4fb2e6fbd54fdd67")
-	ProgpowGardenGenesisHash    = common.HexToHash("0x8975f8760d317524559986d595058d4d66c05d62e0eda1d740cdee56a25788a5")
-	ProgpowOrchardGenesisHash   = common.HexToHash("0x5627aca8194b46ed071f92746ecf975542b12ce406905d715b4be8f044749956")
-	ProgpowLocalGenesisHash     = common.HexToHash("0x9e7149a4f5ff07675e0e7881f004cd0dc1f5a28bb9ba8c4de86794ba6fe80b60")
-	ProgpowGalenaGenesisHash    = common.HexToHash("0xe0a395a3fcd7ecbb28dd66eeceab2fb40db01a2bfbf9e5fbc5b93269104df19a")
+	ProgpowColosseumGenesisHash = common.HexToHash("0x8e484a0047b01b33cfc6769f73c70e695ab27ec89b99c988b31641cb86e3bc3b")
+	ProgpowGardenGenesisHash    = common.HexToHash("0xb0bd2ac6e04044cbe4e1e1113dc511d0a3d3d52c55bfd7240cffeb15f8b5ca1d")
+	ProgpowOrchardGenesisHash   = common.HexToHash("0x7ea3f58395328b0ceec45b1254cd00c0d2200804c92e0de0cf0b7dbaec15beda")
+	ProgpowLocalGenesisHash     = common.HexToHash("0xa03d19a0bf028c214def9621a8495c5182275be113e073767c8d2cbe33081315")
+	ProgpowGalenaGenesisHash    = common.HexToHash("0x8e484a0047b01b33cfc6769f73c70e695ab27ec89b99c988b31641cb86e3bc3b")
 
 	// Blake3GenesisHashes
 	Blake3PowColosseumGenesisHash = common.HexToHash("0x5746089cbee3cde719c3d0599e31504793028c68e5df7acff956e917f72866f5")
-	Blake3PowGardenGenesisHash    = common.HexToHash("0xdee75a7b24237d07f15392d7d5319a9421f838d84b9a6e6a8d1a4d74365ff2de")
-	Blake3PowOrchardGenesisHash   = common.HexToHash("0x418ea8cd5f17277e4bb94cba7170a494fc53df23b915ed42a8fe9f6052a4327b")
+	Blake3PowGardenGenesisHash    = common.HexToHash("0x9a6a442ca5fe302c4f6ab3cb5ed81d3cdbddd0bde28a55ad864ac84cda07fea9")
+	Blake3PowOrchardGenesisHash   = common.HexToHash("0xddf6d6a29a05fc646df65a4965f6b6ebe40fa0c27189c5fac01e31b1f2763b37")
 	Blake3PowLocalGenesisHash     = common.HexToHash("0x279e2d67eb5828010e67f752c7686f2c963df7cc41cc24f19e6610612fff42f1")
 	Blake3PowGalenaGenesisHash    = common.HexToHash("0x9a6a442ca5fe302c4f6ab3cb5ed81d3cdbddd0bde28a55ad864ac84cda07fea9")
 )
