@@ -256,7 +256,7 @@ func (d *Downloader) Synchronise(id string, head common.Hash, entropy *big.Int, 
 		return err
 	}
 	if errors.Is(err, errInvalidChain) || errors.Is(err, errBadPeer) ||
-		errors.Is(err, errStallingPeer) || errors.Is(err, errEmptyHeaderSet) ||
+		errors.Is(err, errEmptyHeaderSet) ||
 		errors.Is(err, errPeersUnavailable) || errors.Is(err, errInvalidAncestor) || errors.Is(err, errBadBlockFound) {
 		log.Warn("Synchronisation failed, dropping peer", "peer", id, "err", err)
 		if d.dropPeer == nil {
