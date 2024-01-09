@@ -4,8 +4,27 @@ import (
 	"encoding/hex"
 
 	"github.com/dominant-strategies/go-quai/consensus/types"
+	"github.com/dominant-strategies/go-quai/log"
 	"github.com/gogo/protobuf/proto"
 )
+
+// converts a custom go Block type (types.Block) to a protocol buffer Block type (pb.Block)
+func MarshalData(data interface{}) []byte {
+	var bytes []byte
+	var err error
+	switch v := data.(type) {
+	case *types.Block:
+		bytes, err = MarshalBlock(v)
+	default:
+		return nil
+	}
+	if err != nil {
+		log.Errorf("Error marshalling data: ", err)
+		return nil
+	} else {
+		return bytes
+	}
+}
 
 // Unmarshals a serialized protobuf slice of bytes into a protocol buffer type
 func UnmarshalProtoMessage(data []byte, pbMsg proto.Message) error {
@@ -70,21 +89,21 @@ func MarshalBlock(block *types.Block) ([]byte, error) {
 func convertToProtoSlice(slice types.SliceID) *SliceID {
 	sliceContext := &Context{
 		Location: slice.Context.Location,
-		Level:   slice.Context.Level,
+		Level:    slice.Context.Level,
 	}
 	return &SliceID{
 		Context: sliceContext,
 		Region:  slice.Region,
 		Zone:    slice.Zone,
 	}
-	
+
 }
 
 // Converts a protocol buffer SliceID type (pb.SliceID) to a custom go SliceID type (types.SliceID)
 func ConvertFromProtoSlice(pbSlice *SliceID) types.SliceID {
 	sliceContext := types.Context{
 		Location: pbSlice.Context.Location,
-		Level:   pbSlice.Context.Level,
+		Level:    pbSlice.Context.Level,
 	}
 	return types.SliceID{
 		Context: sliceContext,
@@ -97,7 +116,7 @@ func ConvertFromProtoSlice(pbSlice *SliceID) types.SliceID {
 func CreateProtoBlockRequest(hash types.Hash, slice types.SliceID) *BlockRequest {
 	pbSlice := convertToProtoSlice(slice)
 	return &BlockRequest{
-		Hash:  hex.EncodeToString(hash[:]),
+		Hash:    hex.EncodeToString(hash[:]),
 		SliceId: pbSlice,
 	}
 }

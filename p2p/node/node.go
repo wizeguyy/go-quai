@@ -8,7 +8,6 @@ import (
 	"github.com/libp2p/go-libp2p"
 	kaddht "github.com/libp2p/go-libp2p-kad-dht"
 	dual "github.com/libp2p/go-libp2p-kad-dht/dual"
-	pubsub "github.com/libp2p/go-libp2p-pubsub"
 
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -45,12 +44,6 @@ type P2PNode struct {
 
 	// Gossipsub instance
 	pubsub *pubsubManager.PubsubManager
-
-	// Gossipsub subscriptions
-	// Each sliceID will have a topic for each data type
-	// - C_blockTopicName
-	// - C_transactionTopicName
-	topics map[types.SliceID]map[string]*pubsub.Topic
 
 	// cache of received blocks
 	blockCache *lru.Cache[types.Hash, *types.Block]
@@ -193,7 +186,6 @@ func NewNode(ctx context.Context) (*P2PNode, error) {
 		bootpeers:  bootpeers,
 		dht:        dht,
 		pubsub:     ps,
-		topics:     make(map[types.SliceID]map[string]*pubsub.Topic),
 		blockCache: blockCache,
 		txCache:    txCache,
 	}, nil
