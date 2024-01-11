@@ -272,7 +272,7 @@ func (x *Context) GetLevel() uint32 {
 	return 0
 }
 
-type SliceID struct {
+type Location struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
@@ -587,7 +587,7 @@ type BlockRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
-	SliceId *SliceID `protobuf:"bytes,1,opt,name=sliceId,proto3" json:"sliceId,omitempty"`
+	Location *Location `protobuf:"bytes,1,opt,name=sliceId,proto3" json:"sliceId,omitempty"`
 	Hash    *Hash    `protobuf:"bytes,2,opt,name=hash,proto3" json:"hash,omitempty"`
 }
 
