@@ -7,8 +7,6 @@ import (
 	"github.com/dominant-strategies/go-quai/core/types"
 	"github.com/dominant-strategies/go-quai/p2p/pb"
 	"github.com/dominant-strategies/go-quai/p2p/protocol"
-	"github.com/ipfs/go-cid"
-	"github.com/multiformats/go-multihash"
 	"github.com/pkg/errors"
 )
 
@@ -57,6 +55,7 @@ func (p *P2PNode) requestBlockFromPeer(hash common.Hash, location common.Locatio
 	// If the response does not contain a block, return an error
 	return nil, errors.New("block not found")
 }
+<<<<<<< HEAD
 
 // Creates a Cid from a location to be used as DHT key
 func locationToCid(location common.Location) cid.Cid {
@@ -69,3 +68,5 @@ func locationToCid(location common.Location) cid.Cid {
 	return cid.NewCidV1(cid.Raw, mhash)
 
 }
+=======
+>>>>>>> 1725839ac (announce to the DHT everytime we have a block)
