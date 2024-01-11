@@ -19,37 +19,40 @@ message QuaiProtocolMessage {
   bytes data = 2; // Encoded payload specific to the action
 }
 
+message Hash {
+    bytes hash = 1; // hash is an array of 32 bytes
+   
+}
+
 // Define a block structure
 message Block {
-  string hash = 1;                       // Unique identifier of the block
-  string parentHash = 2;                 // Hash of the parent block
-  uint64 number = 3;                     // Block number
-  string stateRoot = 4;                  // Root of the state trie
-  string transactionsRoot = 5;           // Root of the transactions trie
-  string receiptsRoot = 6;               // Root of the receipts trie
-  repeated Transaction transactions = 7; // Transactions in the block
-  // TODO: evaluate adding additional fields like miner, difficulty,
-  // totalDifficulty, extraData, size, gasLimit, gasUsed, timestamp, etc.
+    Hash hash = 1;               // Unique identifier of the block
+    string parentHash = 2;         // Hash of the parent block
+    uint64 number = 3;             // Block number
+    string stateRoot = 4;          // Root of the state trie
+    string transactionsRoot = 5;   // Root of the transactions trie
+    string receiptsRoot = 6;       // Root of the receipts trie
+    repeated Transaction transactions = 7; // Transactions in the block
+    // TODO: evaluate adding additional fields like miner, difficulty, totalDifficulty, extraData, size, gasLimit, gasUsed, timestamp, etc.
 }
 
 // Define a transaction structure
 message Transaction {
-  string hash = 1;     // Unique identifier of the transaction
-  string from = 2;     // Sender address
-  string to = 3;       // Recipient address (empty for contract creation)
-  uint64 nonce = 4;    // Nonce of the sender
-  string value = 5;    // Value transferred in Wei
-  string gasPrice = 6; // Gas price in Wei
-  uint64 gas = 7;      // Gas limit
-  bytes input = 8;     // Input data (for contract calls)
-  // TODO: evaluate adding additional fields for signature components (v, r, s)
-  // and chainID for EIP-155 compliance
+    Hash hash = 1;         // Unique identifier of the transaction
+    string from = 2;         // Sender address
+    string to = 3;           // Recipient address (empty for contract creation)
+    uint64 nonce = 4;        // Nonce of the sender
+    string value = 5;        // Value transferred in Wei
+    string gasPrice = 6;     // Gas price in Wei
+    uint64 gas = 7;          // Gas limit
+    bytes input = 8;         // Input data (for contract calls)
+    // TODO: evaluate adding additional fields for signature components (v, r, s) and chainID for EIP-155 compliance
 }
 
 // Request and response messages for block and transaction queries
 message BlockRequest {
-  string location = 1;
-  string hash = 2;
+    SliceID sliceId = 1;
+    Hash hash = 2;
 }
 
 message BlockResponse {
@@ -57,7 +60,9 @@ message BlockResponse {
   Block block = 2;
 }
 
-message TransactionRequest { string hash = 1; }
+message TransactionRequest {
+    Hash hash = 1;
+}
 
 message TransactionResponse {
   bool found = 1;

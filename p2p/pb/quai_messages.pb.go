@@ -217,13 +217,178 @@ func (x *QuaiProtocolMessage) GetData() []byte {
 	return nil
 }
 
+type Context struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Location string `protobuf:"bytes,1,opt,name=location,proto3" json:"location,omitempty"`
+	Level    uint32 `protobuf:"varint,2,opt,name=level,proto3" json:"level,omitempty"`
+}
+
+func (x *Context) Reset() {
+	*x = Context{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_p2p_pb_quai_messages_proto_msgTypes[3]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *Context) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Context) ProtoMessage() {}
+
+func (x *Context) ProtoReflect() protoreflect.Message {
+	mi := &file_p2p_pb_quai_messages_proto_msgTypes[3]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Context.ProtoReflect.Descriptor instead.
+func (*Context) Descriptor() ([]byte, []int) {
+	return file_p2p_pb_quai_messages_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *Context) GetLocation() string {
+	if x != nil {
+		return x.Location
+	}
+	return ""
+}
+
+func (x *Context) GetLevel() uint32 {
+	if x != nil {
+		return x.Level
+	}
+	return 0
+}
+
+type SliceID struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Context *Context `protobuf:"bytes,1,opt,name=context,proto3" json:"context,omitempty"`
+	Region  uint32   `protobuf:"varint,2,opt,name=region,proto3" json:"region,omitempty"`
+	Zone    uint32   `protobuf:"varint,3,opt,name=zone,proto3" json:"zone,omitempty"`
+}
+
+func (x *SliceID) Reset() {
+	*x = SliceID{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_p2p_pb_quai_messages_proto_msgTypes[4]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *SliceID) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SliceID) ProtoMessage() {}
+
+func (x *SliceID) ProtoReflect() protoreflect.Message {
+	mi := &file_p2p_pb_quai_messages_proto_msgTypes[4]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SliceID.ProtoReflect.Descriptor instead.
+func (*SliceID) Descriptor() ([]byte, []int) {
+	return file_p2p_pb_quai_messages_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *SliceID) GetContext() *Context {
+	if x != nil {
+		return x.Context
+	}
+	return nil
+}
+
+func (x *SliceID) GetRegion() uint32 {
+	if x != nil {
+		return x.Region
+	}
+	return 0
+}
+
+func (x *SliceID) GetZone() uint32 {
+	if x != nil {
+		return x.Zone
+	}
+	return 0
+}
+
+type Hash struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Hash []byte `protobuf:"bytes,1,opt,name=hash,proto3" json:"hash,omitempty"` // hash is an array of 32 bytes
+}
+
+func (x *Hash) Reset() {
+	*x = Hash{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_p2p_pb_quai_messages_proto_msgTypes[5]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *Hash) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Hash) ProtoMessage() {}
+
+func (x *Hash) ProtoReflect() protoreflect.Message {
+	mi := &file_p2p_pb_quai_messages_proto_msgTypes[5]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Hash.ProtoReflect.Descriptor instead.
+func (*Hash) Descriptor() ([]byte, []int) {
+	return file_p2p_pb_quai_messages_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *Hash) GetHash() []byte {
+	if x != nil {
+		return x.Hash
+	}
+	return nil
+}
+
 // Define a block structure
 type Block struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Hash             string         `protobuf:"bytes,1,opt,name=hash,proto3" json:"hash,omitempty"`                         // Unique identifier of the block
+	Hash             *Hash          `protobuf:"bytes,1,opt,name=hash,proto3" json:"hash,omitempty"`                         // Unique identifier of the block
 	ParentHash       string         `protobuf:"bytes,2,opt,name=parentHash,proto3" json:"parentHash,omitempty"`             // Hash of the parent block
 	Number           uint64         `protobuf:"varint,3,opt,name=number,proto3" json:"number,omitempty"`                    // Block number
 	StateRoot        string         `protobuf:"bytes,4,opt,name=stateRoot,proto3" json:"stateRoot,omitempty"`               // Root of the state trie
@@ -235,7 +400,7 @@ type Block struct {
 func (x *Block) Reset() {
 	*x = Block{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_p2p_pb_quai_messages_proto_msgTypes[3]
+		mi := &file_p2p_pb_quai_messages_proto_msgTypes[6]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -248,7 +413,7 @@ func (x *Block) String() string {
 func (*Block) ProtoMessage() {}
 
 func (x *Block) ProtoReflect() protoreflect.Message {
-	mi := &file_p2p_pb_quai_messages_proto_msgTypes[3]
+	mi := &file_p2p_pb_quai_messages_proto_msgTypes[6]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -261,14 +426,14 @@ func (x *Block) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Block.ProtoReflect.Descriptor instead.
 func (*Block) Descriptor() ([]byte, []int) {
-	return file_p2p_pb_quai_messages_proto_rawDescGZIP(), []int{3}
+	return file_p2p_pb_quai_messages_proto_rawDescGZIP(), []int{6}
 }
 
-func (x *Block) GetHash() string {
+func (x *Block) GetHash() *Hash {
 	if x != nil {
 		return x.Hash
 	}
-	return ""
+	return nil
 }
 
 func (x *Block) GetParentHash() string {
@@ -319,7 +484,7 @@ type Transaction struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Hash     string `protobuf:"bytes,1,opt,name=hash,proto3" json:"hash,omitempty"`         // Unique identifier of the transaction
+	Hash     *Hash  `protobuf:"bytes,1,opt,name=hash,proto3" json:"hash,omitempty"`         // Unique identifier of the transaction
 	From     string `protobuf:"bytes,2,opt,name=from,proto3" json:"from,omitempty"`         // Sender address
 	To       string `protobuf:"bytes,3,opt,name=to,proto3" json:"to,omitempty"`             // Recipient address (empty for contract creation)
 	Nonce    uint64 `protobuf:"varint,4,opt,name=nonce,proto3" json:"nonce,omitempty"`      // Nonce of the sender
@@ -332,7 +497,7 @@ type Transaction struct {
 func (x *Transaction) Reset() {
 	*x = Transaction{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_p2p_pb_quai_messages_proto_msgTypes[4]
+		mi := &file_p2p_pb_quai_messages_proto_msgTypes[7]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -345,7 +510,7 @@ func (x *Transaction) String() string {
 func (*Transaction) ProtoMessage() {}
 
 func (x *Transaction) ProtoReflect() protoreflect.Message {
-	mi := &file_p2p_pb_quai_messages_proto_msgTypes[4]
+	mi := &file_p2p_pb_quai_messages_proto_msgTypes[7]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -358,14 +523,14 @@ func (x *Transaction) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Transaction.ProtoReflect.Descriptor instead.
 func (*Transaction) Descriptor() ([]byte, []int) {
-	return file_p2p_pb_quai_messages_proto_rawDescGZIP(), []int{4}
+	return file_p2p_pb_quai_messages_proto_rawDescGZIP(), []int{7}
 }
 
-func (x *Transaction) GetHash() string {
+func (x *Transaction) GetHash() *Hash {
 	if x != nil {
 		return x.Hash
 	}
-	return ""
+	return nil
 }
 
 func (x *Transaction) GetFrom() string {
@@ -422,15 +587,14 @@ type BlockRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
-
-	Location string `protobuf:"bytes,1,opt,name=location,proto3" json:"location,omitempty"`
-	Hash     string `protobuf:"bytes,2,opt,name=hash,proto3" json:"hash,omitempty"`
+	SliceId *SliceID `protobuf:"bytes,1,opt,name=sliceId,proto3" json:"sliceId,omitempty"`
+	Hash    *Hash    `protobuf:"bytes,2,opt,name=hash,proto3" json:"hash,omitempty"`
 }
 
 func (x *BlockRequest) Reset() {
 	*x = BlockRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_p2p_pb_quai_messages_proto_msgTypes[5]
+		mi := &file_p2p_pb_quai_messages_proto_msgTypes[8]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -443,7 +607,7 @@ func (x *BlockRequest) String() string {
 func (*BlockRequest) ProtoMessage() {}
 
 func (x *BlockRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_p2p_pb_quai_messages_proto_msgTypes[5]
+	mi := &file_p2p_pb_quai_messages_proto_msgTypes[8]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -456,7 +620,7 @@ func (x *BlockRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BlockRequest.ProtoReflect.Descriptor instead.
 func (*BlockRequest) Descriptor() ([]byte, []int) {
-	return file_p2p_pb_quai_messages_proto_rawDescGZIP(), []int{5}
+	return file_p2p_pb_quai_messages_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *BlockRequest) GetLocation() string {
@@ -466,11 +630,11 @@ func (x *BlockRequest) GetLocation() string {
 	return ""
 }
 
-func (x *BlockRequest) GetHash() string {
+func (x *BlockRequest) GetHash() *Hash {
 	if x != nil {
 		return x.Hash
 	}
-	return ""
+	return nil
 }
 
 type BlockResponse struct {
@@ -485,7 +649,7 @@ type BlockResponse struct {
 func (x *BlockResponse) Reset() {
 	*x = BlockResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_p2p_pb_quai_messages_proto_msgTypes[6]
+		mi := &file_p2p_pb_quai_messages_proto_msgTypes[9]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -498,7 +662,7 @@ func (x *BlockResponse) String() string {
 func (*BlockResponse) ProtoMessage() {}
 
 func (x *BlockResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_p2p_pb_quai_messages_proto_msgTypes[6]
+	mi := &file_p2p_pb_quai_messages_proto_msgTypes[9]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -511,7 +675,7 @@ func (x *BlockResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BlockResponse.ProtoReflect.Descriptor instead.
 func (*BlockResponse) Descriptor() ([]byte, []int) {
-	return file_p2p_pb_quai_messages_proto_rawDescGZIP(), []int{6}
+	return file_p2p_pb_quai_messages_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *BlockResponse) GetFound() bool {
@@ -533,13 +697,13 @@ type TransactionRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Hash string `protobuf:"bytes,1,opt,name=hash,proto3" json:"hash,omitempty"`
+	Hash *Hash `protobuf:"bytes,1,opt,name=hash,proto3" json:"hash,omitempty"`
 }
 
 func (x *TransactionRequest) Reset() {
 	*x = TransactionRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_p2p_pb_quai_messages_proto_msgTypes[7]
+		mi := &file_p2p_pb_quai_messages_proto_msgTypes[10]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -552,7 +716,7 @@ func (x *TransactionRequest) String() string {
 func (*TransactionRequest) ProtoMessage() {}
 
 func (x *TransactionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_p2p_pb_quai_messages_proto_msgTypes[7]
+	mi := &file_p2p_pb_quai_messages_proto_msgTypes[10]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -565,14 +729,14 @@ func (x *TransactionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TransactionRequest.ProtoReflect.Descriptor instead.
 func (*TransactionRequest) Descriptor() ([]byte, []int) {
-	return file_p2p_pb_quai_messages_proto_rawDescGZIP(), []int{7}
+	return file_p2p_pb_quai_messages_proto_rawDescGZIP(), []int{10}
 }
 
-func (x *TransactionRequest) GetHash() string {
+func (x *TransactionRequest) GetHash() *Hash {
 	if x != nil {
 		return x.Hash
 	}
-	return ""
+	return nil
 }
 
 type TransactionResponse struct {
@@ -587,7 +751,7 @@ type TransactionResponse struct {
 func (x *TransactionResponse) Reset() {
 	*x = TransactionResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_p2p_pb_quai_messages_proto_msgTypes[8]
+		mi := &file_p2p_pb_quai_messages_proto_msgTypes[11]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -600,7 +764,7 @@ func (x *TransactionResponse) String() string {
 func (*TransactionResponse) ProtoMessage() {}
 
 func (x *TransactionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_p2p_pb_quai_messages_proto_msgTypes[8]
+	mi := &file_p2p_pb_quai_messages_proto_msgTypes[11]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -613,7 +777,7 @@ func (x *TransactionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TransactionResponse.ProtoReflect.Descriptor instead.
 func (*TransactionResponse) Descriptor() ([]byte, []int) {
-	return file_p2p_pb_quai_messages_proto_rawDescGZIP(), []int{8}
+	return file_p2p_pb_quai_messages_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *TransactionResponse) GetFound() bool {
@@ -685,26 +849,73 @@ var file_p2p_pb_quai_messages_proto_rawDesc = []byte{
 	0x18, 0x08, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x05, 0x69, 0x6e, 0x70, 0x75, 0x74, 0x22, 0x3e, 0x0a,
 	0x0c, 0x42, 0x6c, 0x6f, 0x63, 0x6b, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x1a, 0x0a,
 	0x08, 0x6c, 0x6f, 0x63, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52,
-	0x08, 0x6c, 0x6f, 0x63, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x12, 0x12, 0x0a, 0x04, 0x68, 0x61, 0x73,
-	0x68, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x68, 0x61, 0x73, 0x68, 0x22, 0x50, 0x0a,
-	0x0d, 0x42, 0x6c, 0x6f, 0x63, 0x6b, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x14,
-	0x0a, 0x05, 0x66, 0x6f, 0x75, 0x6e, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x08, 0x52, 0x05, 0x66,
-	0x6f, 0x75, 0x6e, 0x64, 0x12, 0x29, 0x0a, 0x05, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x18, 0x02, 0x20,
-	0x01, 0x28, 0x0b, 0x32, 0x13, 0x2e, 0x71, 0x75, 0x61, 0x69, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x63,
-	0x6f, 0x6c, 0x2e, 0x42, 0x6c, 0x6f, 0x63, 0x6b, 0x52, 0x05, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x22,
-	0x28, 0x0a, 0x12, 0x54, 0x72, 0x61, 0x6e, 0x73, 0x61, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x52, 0x65,
-	0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x12, 0x0a, 0x04, 0x68, 0x61, 0x73, 0x68, 0x18, 0x01, 0x20,
-	0x01, 0x28, 0x09, 0x52, 0x04, 0x68, 0x61, 0x73, 0x68, 0x22, 0x68, 0x0a, 0x13, 0x54, 0x72, 0x61,
-	0x6e, 0x73, 0x61, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65,
+	0x08, 0x6c, 0x6f, 0x63, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x12, 0x14, 0x0a, 0x05, 0x6c, 0x65, 0x76,
+	0x65, 0x6c, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0d, 0x52, 0x05, 0x6c, 0x65, 0x76, 0x65, 0x6c, 0x22,
+	0x66, 0x0a, 0x07, 0x53, 0x6c, 0x69, 0x63, 0x65, 0x49, 0x44, 0x12, 0x2f, 0x0a, 0x07, 0x63, 0x6f,
+	0x6e, 0x74, 0x65, 0x78, 0x74, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x15, 0x2e, 0x71, 0x75,
+	0x61, 0x69, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x63, 0x6f, 0x6c, 0x2e, 0x43, 0x6f, 0x6e, 0x74, 0x65,
+	0x78, 0x74, 0x52, 0x07, 0x63, 0x6f, 0x6e, 0x74, 0x65, 0x78, 0x74, 0x12, 0x16, 0x0a, 0x06, 0x72,
+	0x65, 0x67, 0x69, 0x6f, 0x6e, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0d, 0x52, 0x06, 0x72, 0x65, 0x67,
+	0x69, 0x6f, 0x6e, 0x12, 0x12, 0x0a, 0x04, 0x7a, 0x6f, 0x6e, 0x65, 0x18, 0x03, 0x20, 0x01, 0x28,
+	0x0d, 0x52, 0x04, 0x7a, 0x6f, 0x6e, 0x65, 0x22, 0x1a, 0x0a, 0x04, 0x48, 0x61, 0x73, 0x68, 0x12,
+	0x12, 0x0a, 0x04, 0x68, 0x61, 0x73, 0x68, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x04, 0x68,
+	0x61, 0x73, 0x68, 0x22, 0x94, 0x02, 0x0a, 0x05, 0x42, 0x6c, 0x6f, 0x63, 0x6b, 0x12, 0x26, 0x0a,
+	0x04, 0x68, 0x61, 0x73, 0x68, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x12, 0x2e, 0x71, 0x75,
+	0x61, 0x69, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x63, 0x6f, 0x6c, 0x2e, 0x48, 0x61, 0x73, 0x68, 0x52,
+	0x04, 0x68, 0x61, 0x73, 0x68, 0x12, 0x1e, 0x0a, 0x0a, 0x70, 0x61, 0x72, 0x65, 0x6e, 0x74, 0x48,
+	0x61, 0x73, 0x68, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0a, 0x70, 0x61, 0x72, 0x65, 0x6e,
+	0x74, 0x48, 0x61, 0x73, 0x68, 0x12, 0x16, 0x0a, 0x06, 0x6e, 0x75, 0x6d, 0x62, 0x65, 0x72, 0x18,
+	0x03, 0x20, 0x01, 0x28, 0x04, 0x52, 0x06, 0x6e, 0x75, 0x6d, 0x62, 0x65, 0x72, 0x12, 0x1c, 0x0a,
+	0x09, 0x73, 0x74, 0x61, 0x74, 0x65, 0x52, 0x6f, 0x6f, 0x74, 0x18, 0x04, 0x20, 0x01, 0x28, 0x09,
+	0x52, 0x09, 0x73, 0x74, 0x61, 0x74, 0x65, 0x52, 0x6f, 0x6f, 0x74, 0x12, 0x2a, 0x0a, 0x10, 0x74,
+	0x72, 0x61, 0x6e, 0x73, 0x61, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x52, 0x6f, 0x6f, 0x74, 0x18,
+	0x05, 0x20, 0x01, 0x28, 0x09, 0x52, 0x10, 0x74, 0x72, 0x61, 0x6e, 0x73, 0x61, 0x63, 0x74, 0x69,
+	0x6f, 0x6e, 0x73, 0x52, 0x6f, 0x6f, 0x74, 0x12, 0x22, 0x0a, 0x0c, 0x72, 0x65, 0x63, 0x65, 0x69,
+	0x70, 0x74, 0x73, 0x52, 0x6f, 0x6f, 0x74, 0x18, 0x06, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0c, 0x72,
+	0x65, 0x63, 0x65, 0x69, 0x70, 0x74, 0x73, 0x52, 0x6f, 0x6f, 0x74, 0x12, 0x3d, 0x0a, 0x0c, 0x74,
+	0x72, 0x61, 0x6e, 0x73, 0x61, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x18, 0x07, 0x20, 0x03, 0x28,
+	0x0b, 0x32, 0x19, 0x2e, 0x71, 0x75, 0x61, 0x69, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x63, 0x6f, 0x6c,
+	0x2e, 0x54, 0x72, 0x61, 0x6e, 0x73, 0x61, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x52, 0x0c, 0x74, 0x72,
+	0x61, 0x6e, 0x73, 0x61, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x22, 0xc9, 0x01, 0x0a, 0x0b, 0x54,
+	0x72, 0x61, 0x6e, 0x73, 0x61, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x12, 0x26, 0x0a, 0x04, 0x68, 0x61,
+	0x73, 0x68, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x12, 0x2e, 0x71, 0x75, 0x61, 0x69, 0x70,
+	0x72, 0x6f, 0x74, 0x6f, 0x63, 0x6f, 0x6c, 0x2e, 0x48, 0x61, 0x73, 0x68, 0x52, 0x04, 0x68, 0x61,
+	0x73, 0x68, 0x12, 0x12, 0x0a, 0x04, 0x66, 0x72, 0x6f, 0x6d, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09,
+	0x52, 0x04, 0x66, 0x72, 0x6f, 0x6d, 0x12, 0x0e, 0x0a, 0x02, 0x74, 0x6f, 0x18, 0x03, 0x20, 0x01,
+	0x28, 0x09, 0x52, 0x02, 0x74, 0x6f, 0x12, 0x14, 0x0a, 0x05, 0x6e, 0x6f, 0x6e, 0x63, 0x65, 0x18,
+	0x04, 0x20, 0x01, 0x28, 0x04, 0x52, 0x05, 0x6e, 0x6f, 0x6e, 0x63, 0x65, 0x12, 0x14, 0x0a, 0x05,
+	0x76, 0x61, 0x6c, 0x75, 0x65, 0x18, 0x05, 0x20, 0x01, 0x28, 0x09, 0x52, 0x05, 0x76, 0x61, 0x6c,
+	0x75, 0x65, 0x12, 0x1a, 0x0a, 0x08, 0x67, 0x61, 0x73, 0x50, 0x72, 0x69, 0x63, 0x65, 0x18, 0x06,
+	0x20, 0x01, 0x28, 0x09, 0x52, 0x08, 0x67, 0x61, 0x73, 0x50, 0x72, 0x69, 0x63, 0x65, 0x12, 0x10,
+	0x0a, 0x03, 0x67, 0x61, 0x73, 0x18, 0x07, 0x20, 0x01, 0x28, 0x04, 0x52, 0x03, 0x67, 0x61, 0x73,
+	0x12, 0x14, 0x0a, 0x05, 0x69, 0x6e, 0x70, 0x75, 0x74, 0x18, 0x08, 0x20, 0x01, 0x28, 0x0c, 0x52,
+	0x05, 0x69, 0x6e, 0x70, 0x75, 0x74, 0x22, 0x67, 0x0a, 0x0c, 0x42, 0x6c, 0x6f, 0x63, 0x6b, 0x52,
+	0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x2f, 0x0a, 0x07, 0x73, 0x6c, 0x69, 0x63, 0x65, 0x49,
+	0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x15, 0x2e, 0x71, 0x75, 0x61, 0x69, 0x70, 0x72,
+	0x6f, 0x74, 0x6f, 0x63, 0x6f, 0x6c, 0x2e, 0x53, 0x6c, 0x69, 0x63, 0x65, 0x49, 0x44, 0x52, 0x07,
+	0x73, 0x6c, 0x69, 0x63, 0x65, 0x49, 0x64, 0x12, 0x26, 0x0a, 0x04, 0x68, 0x61, 0x73, 0x68, 0x18,
+	0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x12, 0x2e, 0x71, 0x75, 0x61, 0x69, 0x70, 0x72, 0x6f, 0x74,
+	0x6f, 0x63, 0x6f, 0x6c, 0x2e, 0x48, 0x61, 0x73, 0x68, 0x52, 0x04, 0x68, 0x61, 0x73, 0x68, 0x22,
+	0x50, 0x0a, 0x0d, 0x42, 0x6c, 0x6f, 0x63, 0x6b, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65,
 	0x12, 0x14, 0x0a, 0x05, 0x66, 0x6f, 0x75, 0x6e, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x08, 0x52,
-	0x05, 0x66, 0x6f, 0x75, 0x6e, 0x64, 0x12, 0x3b, 0x0a, 0x0b, 0x74, 0x72, 0x61, 0x6e, 0x73, 0x61,
-	0x63, 0x74, 0x69, 0x6f, 0x6e, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x19, 0x2e, 0x71, 0x75,
-	0x61, 0x69, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x63, 0x6f, 0x6c, 0x2e, 0x54, 0x72, 0x61, 0x6e, 0x73,
-	0x61, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x52, 0x0b, 0x74, 0x72, 0x61, 0x6e, 0x73, 0x61, 0x63, 0x74,
-	0x69, 0x6f, 0x6e, 0x42, 0x2f, 0x5a, 0x2d, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f,
-	0x6d, 0x2f, 0x64, 0x6f, 0x6d, 0x69, 0x6e, 0x61, 0x6e, 0x74, 0x2d, 0x73, 0x74, 0x72, 0x61, 0x74,
-	0x65, 0x67, 0x69, 0x65, 0x73, 0x2f, 0x67, 0x6f, 0x2d, 0x71, 0x75, 0x61, 0x69, 0x2f, 0x70, 0x32,
-	0x70, 0x2f, 0x70, 0x62, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x05, 0x66, 0x6f, 0x75, 0x6e, 0x64, 0x12, 0x29, 0x0a, 0x05, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x18,
+	0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x13, 0x2e, 0x71, 0x75, 0x61, 0x69, 0x70, 0x72, 0x6f, 0x74,
+	0x6f, 0x63, 0x6f, 0x6c, 0x2e, 0x42, 0x6c, 0x6f, 0x63, 0x6b, 0x52, 0x05, 0x62, 0x6c, 0x6f, 0x63,
+	0x6b, 0x22, 0x3c, 0x0a, 0x12, 0x54, 0x72, 0x61, 0x6e, 0x73, 0x61, 0x63, 0x74, 0x69, 0x6f, 0x6e,
+	0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x26, 0x0a, 0x04, 0x68, 0x61, 0x73, 0x68, 0x18,
+	0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x12, 0x2e, 0x71, 0x75, 0x61, 0x69, 0x70, 0x72, 0x6f, 0x74,
+	0x6f, 0x63, 0x6f, 0x6c, 0x2e, 0x48, 0x61, 0x73, 0x68, 0x52, 0x04, 0x68, 0x61, 0x73, 0x68, 0x22,
+	0x68, 0x0a, 0x13, 0x54, 0x72, 0x61, 0x6e, 0x73, 0x61, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x52, 0x65,
+	0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x14, 0x0a, 0x05, 0x66, 0x6f, 0x75, 0x6e, 0x64, 0x18,
+	0x01, 0x20, 0x01, 0x28, 0x08, 0x52, 0x05, 0x66, 0x6f, 0x75, 0x6e, 0x64, 0x12, 0x3b, 0x0a, 0x0b,
+	0x74, 0x72, 0x61, 0x6e, 0x73, 0x61, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x18, 0x02, 0x20, 0x01, 0x28,
+	0x0b, 0x32, 0x19, 0x2e, 0x71, 0x75, 0x61, 0x69, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x63, 0x6f, 0x6c,
+	0x2e, 0x54, 0x72, 0x61, 0x6e, 0x73, 0x61, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x52, 0x0b, 0x74, 0x72,
+	0x61, 0x6e, 0x73, 0x61, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x42, 0x2f, 0x5a, 0x2d, 0x67, 0x69, 0x74,
+	0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x64, 0x6f, 0x6d, 0x69, 0x6e, 0x61, 0x6e, 0x74,
+	0x2d, 0x73, 0x74, 0x72, 0x61, 0x74, 0x65, 0x67, 0x69, 0x65, 0x73, 0x2f, 0x67, 0x6f, 0x2d, 0x71,
+	0x75, 0x61, 0x69, 0x2f, 0x70, 0x32, 0x70, 0x2f, 0x70, 0x62, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74,
+	0x6f, 0x33,
 }
 
 var (
@@ -720,31 +931,40 @@ func file_p2p_pb_quai_messages_proto_rawDescGZIP() []byte {
 }
 
 var file_p2p_pb_quai_messages_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_p2p_pb_quai_messages_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_p2p_pb_quai_messages_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_p2p_pb_quai_messages_proto_goTypes = []interface{}{
 	(QuaiProtocolMessage_ActionType)(0), // 0: quaiprotocol.QuaiProtocolMessage.ActionType
 	(*GossipBlock)(nil),                 // 1: quaiprotocol.GossipBlock
 	(*GossipTransaction)(nil),           // 2: quaiprotocol.GossipTransaction
 	(*QuaiProtocolMessage)(nil),         // 3: quaiprotocol.QuaiProtocolMessage
-	(*Block)(nil),                       // 4: quaiprotocol.Block
-	(*Transaction)(nil),                 // 5: quaiprotocol.Transaction
-	(*BlockRequest)(nil),                // 6: quaiprotocol.BlockRequest
-	(*BlockResponse)(nil),               // 7: quaiprotocol.BlockResponse
-	(*TransactionRequest)(nil),          // 8: quaiprotocol.TransactionRequest
-	(*TransactionResponse)(nil),         // 9: quaiprotocol.TransactionResponse
+	(*Context)(nil),                     // 4: quaiprotocol.Context
+	(*SliceID)(nil),                     // 5: quaiprotocol.SliceID
+	(*Hash)(nil),                        // 6: quaiprotocol.Hash
+	(*Block)(nil),                       // 7: quaiprotocol.Block
+	(*Transaction)(nil),                 // 8: quaiprotocol.Transaction
+	(*BlockRequest)(nil),                // 9: quaiprotocol.BlockRequest
+	(*BlockResponse)(nil),               // 10: quaiprotocol.BlockResponse
+	(*TransactionRequest)(nil),          // 11: quaiprotocol.TransactionRequest
+	(*TransactionResponse)(nil),         // 12: quaiprotocol.TransactionResponse
 }
 var file_p2p_pb_quai_messages_proto_depIdxs = []int32{
-	4, // 0: quaiprotocol.GossipBlock.block:type_name -> quaiprotocol.Block
-	5, // 1: quaiprotocol.GossipTransaction.transaction:type_name -> quaiprotocol.Transaction
-	0, // 2: quaiprotocol.QuaiProtocolMessage.action:type_name -> quaiprotocol.QuaiProtocolMessage.ActionType
-	5, // 3: quaiprotocol.Block.transactions:type_name -> quaiprotocol.Transaction
-	4, // 4: quaiprotocol.BlockResponse.block:type_name -> quaiprotocol.Block
-	5, // 5: quaiprotocol.TransactionResponse.transaction:type_name -> quaiprotocol.Transaction
-	6, // [6:6] is the sub-list for method output_type
-	6, // [6:6] is the sub-list for method input_type
-	6, // [6:6] is the sub-list for extension type_name
-	6, // [6:6] is the sub-list for extension extendee
-	0, // [0:6] is the sub-list for field type_name
+	7,  // 0: quaiprotocol.GossipBlock.block:type_name -> quaiprotocol.Block
+	8,  // 1: quaiprotocol.GossipTransaction.transaction:type_name -> quaiprotocol.Transaction
+	0,  // 2: quaiprotocol.QuaiProtocolMessage.action:type_name -> quaiprotocol.QuaiProtocolMessage.ActionType
+	4,  // 3: quaiprotocol.SliceID.context:type_name -> quaiprotocol.Context
+	6,  // 4: quaiprotocol.Block.hash:type_name -> quaiprotocol.Hash
+	8,  // 5: quaiprotocol.Block.transactions:type_name -> quaiprotocol.Transaction
+	6,  // 6: quaiprotocol.Transaction.hash:type_name -> quaiprotocol.Hash
+	5,  // 7: quaiprotocol.BlockRequest.sliceId:type_name -> quaiprotocol.SliceID
+	6,  // 8: quaiprotocol.BlockRequest.hash:type_name -> quaiprotocol.Hash
+	7,  // 9: quaiprotocol.BlockResponse.block:type_name -> quaiprotocol.Block
+	6,  // 10: quaiprotocol.TransactionRequest.hash:type_name -> quaiprotocol.Hash
+	8,  // 11: quaiprotocol.TransactionResponse.transaction:type_name -> quaiprotocol.Transaction
+	12, // [12:12] is the sub-list for method output_type
+	12, // [12:12] is the sub-list for method input_type
+	12, // [12:12] is the sub-list for extension type_name
+	12, // [12:12] is the sub-list for extension extendee
+	0,  // [0:12] is the sub-list for field type_name
 }
 
 func init() { file_p2p_pb_quai_messages_proto_init() }
@@ -790,7 +1010,7 @@ func file_p2p_pb_quai_messages_proto_init() {
 			}
 		}
 		file_p2p_pb_quai_messages_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Block); i {
+			switch v := v.(*Context); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -802,7 +1022,7 @@ func file_p2p_pb_quai_messages_proto_init() {
 			}
 		}
 		file_p2p_pb_quai_messages_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Transaction); i {
+			switch v := v.(*SliceID); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -814,7 +1034,7 @@ func file_p2p_pb_quai_messages_proto_init() {
 			}
 		}
 		file_p2p_pb_quai_messages_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*BlockRequest); i {
+			switch v := v.(*Hash); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -826,7 +1046,7 @@ func file_p2p_pb_quai_messages_proto_init() {
 			}
 		}
 		file_p2p_pb_quai_messages_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*BlockResponse); i {
+			switch v := v.(*Block); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -838,7 +1058,7 @@ func file_p2p_pb_quai_messages_proto_init() {
 			}
 		}
 		file_p2p_pb_quai_messages_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*TransactionRequest); i {
+			switch v := v.(*Transaction); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -850,6 +1070,42 @@ func file_p2p_pb_quai_messages_proto_init() {
 			}
 		}
 		file_p2p_pb_quai_messages_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*BlockRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_p2p_pb_quai_messages_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*BlockResponse); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_p2p_pb_quai_messages_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*TransactionRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_p2p_pb_quai_messages_proto_msgTypes[11].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*TransactionResponse); i {
 			case 0:
 				return &v.state
@@ -868,7 +1124,7 @@ func file_p2p_pb_quai_messages_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_p2p_pb_quai_messages_proto_rawDesc,
 			NumEnums:      1,
-			NumMessages:   9,
+			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
