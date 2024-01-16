@@ -9,8 +9,18 @@ import (
 
 // The consensus backend will implement the following interface to provide information to the networking backend.
 type ConsensusAPI interface {
+<<<<<<< HEAD
 	// Returns the current block height for the given location
 	GetHeight(common.Location) uint64
+=======
+	// Returns the current block height for the given sliceID
+	GetHeight(types.SliceID) uint64
+
+	// Returns the slices this node is processing
+	GetRunningSlices() map[types.SliceID]*types.SliceID
+	// Sets the slices this node is processing
+	SetRunningSlices(slices []types.SliceID)
+>>>>>>> 7ab2b819b (refactor slice usage to avoid build error)
 
 	// Handle new data propagated from the gossip network. Should return quickly.
 	// Return true if this data should be relayed to peers. False if it should be ignored.
