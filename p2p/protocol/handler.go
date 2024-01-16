@@ -1,11 +1,13 @@
 package protocol
 
 import (
+	"errors"
+	"io"
+
 	"github.com/dominant-strategies/go-quai/common"
 	"github.com/dominant-strategies/go-quai/log"
 	"github.com/dominant-strategies/go-quai/p2p/pb"
 	"github.com/libp2p/go-libp2p/core/network"
-	"google.golang.org/protobuf/proto"
 )
 
 func QuaiProtocolHandler(stream network.Stream, node QuaiP2PNode) {
@@ -24,17 +26,24 @@ func QuaiProtocolHandler(stream network.Stream, node QuaiP2PNode) {
 	for {
 		data, err := common.ReadMessageFromStream(stream)
 		if err != nil {
+			if errors.Is(err, io.EOF) {
+				log.Debugf("stream closed by peer %s", stream.Conn().RemotePeer())
+				break
+			}
+
 			log.Errorf("error reading message from stream: %s", err)
-			return
+			// TODO: handle error
+			break
 		}
-
-		var protoMessage proto.Message
-		err = pb.UnmarshalProtoMessage(data, protoMessage)
+		action, slice, hash, err := pb.DecodeQuaiRequest(data)
 		if err != nil {
-			log.Errorf("error unmarshalling message: %s", err)
-			return
+			log.Errorf("error decoding quai request: %s", err)
+			// TODO: handle error
+			break
 		}
+		log.Tracef("Decoded Quai Request - action: %s, slice: %+v, hash: %s", action, slice, hash)
 
+<<<<<<< HEAD
 		switch msg := protoMessage.(type) {
 		case *pb.BlockRequest:
 			// get the hash from the block request
@@ -88,9 +97,74 @@ func QuaiProtocolHandler(stream network.Stream, node QuaiP2PNode) {
 
 		case *pb.QuaiProtocolMessage:
 			// TODO: handle quai protocol message
+=======
+		switch action {
+		case pb.QuaiRequestMessage_REQUEST_BLOCK:
+			log.Debugf("Received block request for slice %+v and hash %s", slice, hash)
+			handleBlockRequest(slice, hash, stream, node)
+		case pb.QuaiRequestMessage_REQUEST_HEADER:
+			log.Debugf("Received header request for slice %+v and hash %s", slice, hash)
+			handleHeaderRequest(slice, hash, stream, node)
+		case pb.QuaiRequestMessage_REQUEST_TRANSACTION:
+			handleTransactionRequest(slice, hash, stream, node)
+>>>>>>> 10cdfc288 (update protocol handler to use new protobuf API)
 		default:
-			log.Errorf("unknown message type received: %s", msg)
-			// TODO: handle unknown message type
+			log.Errorf("invalid action type: %s", action)
+			// TODO: handle error
+			return
 		}
 	}
+}
+
+// Seeks the block in the cache or database and sends it to the peer in a pb.QuaiResponseMessage
+func handleBlockRequest(slice *types.SliceID, hash *common.Hash, stream network.Stream, node QuaiP2PNode) {
+	// check if we have the block in our cache or database
+	block := node.GetBlock(*hash, *slice)
+	if block == nil {
+		// TODO: handle block not found
+		log.Warnf("block not found")
+		return
+	}
+	// create a Quai Message Response with the block
+	action := pb.QuaiResponseMessage_RESPONSE_BLOCK
+	data, err := pb.EncodeQuaiResponse(action, block)
+	if err != nil {
+		log.Errorf("error encoding quai response: %s", err)
+		return
+	}
+	err = common.WriteMessageToStream(stream, data)
+	if err != nil {
+		log.Errorf("error writing message to stream: %s", err)
+		// TODO: handle error
+		return
+	}
+	log.Debugf("Sent block %s to peer %s", block.Hash, stream.Conn().RemotePeer())
+}
+
+// Seeks the header in the cache or database and sends it to the peer in a pb.QuaiResponseMessage
+func handleHeaderRequest(slice *types.SliceID, hash *common.Hash, stream network.Stream, node QuaiP2PNode) {
+	header := node.GetHeader(*hash, *slice)
+	if header == nil {
+		// TODO: handle header not found
+		log.Warnf("header not found")
+		return
+	}
+	log.Tracef("header found: %+v", header)
+	// create a Quai Message Response with the header
+	action := pb.QuaiResponseMessage_RESPONSE_HEADER
+	data, err := pb.EncodeQuaiResponse(action, header)
+	if err != nil {
+		log.Errorf("error encoding quai response: %s", err)
+		return
+	}
+	err = common.WriteMessageToStream(stream, data)
+	if err != nil {
+		log.Errorf("error writing message to stream: %s", err)
+		// TODO: handle error
+		return
+	}
+}
+
+func handleTransactionRequest(slice *types.SliceID, hash *common.Hash, stream network.Stream, node QuaiP2PNode) {
+	// TODO: implement
 }
