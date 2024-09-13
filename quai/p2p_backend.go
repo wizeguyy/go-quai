@@ -143,7 +143,7 @@ func (qbe *QuaiBackend) OnNewBroadcast(sourcePeer p2p.PeerID, Id string, topic s
 		}
 		if backend.ProcessingState() {
 
-			backend.Logger().WithFields(log.Fields{"tx count": len(data.WorkObject.Transactions()), "message id": Id}).Info("Received a work share broadcast")
+			backend.Logger().WithFields(log.Fields{"tx count": len(data.WorkObject.Transactions()), "message id": Id}).Debug("Received a work share broadcast")
 			// Unpack the workobjectheader and the transactions
 			backend.SendWorkShare(data.WorkObject.WorkObjectHeader())
 			backend.SendRemoteTxs(data.WorkObject.Transactions())
