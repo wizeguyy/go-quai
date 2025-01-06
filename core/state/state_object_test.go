@@ -14,23 +14,33 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-package snapshot
+package state
 
 import (
 	"bytes"
+	"testing"
 
 	"github.com/dominant-strategies/go-quai/common"
 )
 
-// hashes is a helper to implement sort.Interface.
-type hashes []common.Hash
+func BenchmarkCutOriginal(b *testing.B) {
+	value := common.HexToHash("0x01")
+	for i := 0; i < b.N; i++ {
+		bytes.TrimLeft(value[:], "\x00")
+	}
+}
 
-// Len is the number of elements in the collection.
-func (hs hashes) Len() int { return len(hs) }
+func BenchmarkCutsetterFn(b *testing.B) {
+	value := common.HexToHash("0x01")
+	cutSetFn := func(r rune) bool { return r == 0 }
+	for i := 0; i < b.N; i++ {
+		bytes.TrimLeftFunc(value[:], cutSetFn)
+	}
+}
 
-// Less reports whether the element with index i should sort before the element
-// with index j.
-func (hs hashes) Less(i, j int) bool { return bytes.Compare(hs[i][:], hs[j][:]) < 0 }
-
-// Swap swaps the elements with indexes i and j.
-func (hs hashes) Swap(i, j int) { hs[i], hs[j] = hs[j], hs[i] }
+func BenchmarkCutCustomTrim(b *testing.B) {
+	value := common.HexToHash("0x01")
+	for i := 0; i < b.N; i++ {
+		common.TrimLeftZeroes(value[:])
+	}
+}

@@ -31,6 +31,7 @@ import (
 	"github.com/dominant-strategies/go-quai/common"
 	"github.com/dominant-strategies/go-quai/common/hexutil"
 	"github.com/dominant-strategies/go-quai/common/math"
+	"github.com/dominant-strategies/go-quai/consensus"
 	"github.com/dominant-strategies/go-quai/consensus/progpow"
 	"github.com/dominant-strategies/go-quai/core"
 	"github.com/dominant-strategies/go-quai/core/state"
@@ -544,6 +545,38 @@ func (diff *StateOverride) Apply(state *state.StateDB, nodeLocation common.Locat
 		}
 	}
 	return nil
+}
+
+// ChainContextBackend provides methods required to implement ChainContext.
+type ChainContextBackend interface {
+	Engine() consensus.Engine
+	HeaderByNumber(context.Context, rpc.BlockNumber) (*types.Header, error)
+}
+
+// ChainContext is an implementation of core.ChainContext. It's main use-case
+// is instantiating a vm.BlockContext without having access to the BlockChain object.
+type ChainContext struct {
+	b   ChainContextBackend
+	ctx context.Context
+}
+
+// NewChainContext creates a new ChainContext object.
+func NewChainContext(ctx context.Context, backend ChainContextBackend) *ChainContext {
+	return &ChainContext{ctx: ctx, b: backend}
+}
+
+func (context *ChainContext) Engine() consensus.Engine {
+	return context.b.Engine()
+}
+
+func (context *ChainContext) GetHeader(hash common.Hash, number uint64) *types.Header {
+	// This method is called to get the hash for a block number when executing the BLOCKHASH
+	// opcode. Hence no need to search for non-canonical blocks.
+	header, err := context.b.HeaderByNumber(context.ctx, rpc.BlockNumber(number))
+	if err != nil || header.Hash() != hash {
+		return nil
+	}
+	return header
 }
 
 func DoCall(ctx context.Context, b Backend, args TransactionArgs, blockNrOrHash rpc.BlockNumberOrHash, overrides *StateOverride, timeout time.Duration, globalGasCap uint64) (*core.ExecutionResult, error) {

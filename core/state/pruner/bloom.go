@@ -1,4 +1,4 @@
-// Copyright 2020 The go-ethereum Authors
+// Copyright 2021 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
@@ -21,26 +21,18 @@ import (
 	"errors"
 	"os"
 
-	bloomfilter "github.com/holiman/bloomfilter/v2"
-
 	"github.com/dominant-strategies/go-quai/common"
 	"github.com/dominant-strategies/go-quai/core/rawdb"
 	"github.com/dominant-strategies/go-quai/log"
+	bloomfilter "github.com/holiman/bloomfilter/v2"
 )
 
-// stateBloomHasher is a wrapper around a byte blob to satisfy the interface API
-// requirements of the bloom library used. It's used to convert a trie hash or
-// contract code hash into a 64 bit mini hash.
-type stateBloomHasher []byte
+// stateBloomHash is used to convert a trie hash or contract code hash into a 64 bit mini hash.
+func stateBloomHash(f []byte) uint64 {
+	return binary.BigEndian.Uint64(f)
+}
 
-func (f stateBloomHasher) Write(p []byte) (n int, err error) { panic("not implemented") }
-func (f stateBloomHasher) Sum(b []byte) []byte               { panic("not implemented") }
-func (f stateBloomHasher) Reset()                            { panic("not implemented") }
-func (f stateBloomHasher) BlockSize() int                    { panic("not implemented") }
-func (f stateBloomHasher) Size() int                         { return 8 }
-func (f stateBloomHasher) Sum64() uint64                     { return binary.BigEndian.Uint64(f) }
-
-// stateBloom is a bloom filter used during the state convesion(snapshot->state).
+// stateBloom is a bloom filter used during the state conversion(snapshot->state).
 // The keys of all generated entries will be recorded here so that in the pruning
 // stage the entries belong to the specific version can be avoided for deletion.
 //
@@ -51,38 +43,35 @@ func (f stateBloomHasher) Sum64() uint64                     { return binary.Big
 // state root. So in theory this pruned state shouldn't be visited anymore. Another
 // potential issue is for fast sync. If we do another fast sync upon the pruned
 // database, it's problematic which will stop the expansion during the syncing.
+// TODO address it @rjl493456442 @holiman @karalabe.
 //
 // After the entire state is generated, the bloom filter should be persisted into
 // the disk. It indicates the whole generation procedure is finished.
 type stateBloom struct {
-	bloom  *bloomfilter.Filter
-	logger *log.Logger
+	bloom *bloomfilter.Filter
 }
 
-func (sb *stateBloom) Logger() *log.Logger {
-	return sb.logger
-}
-
+// newStateBloomWithSize creates a brand new state bloom for state generation.
 // The bloom filter will be created by the passing bloom filter size. According
 // to the https://hur.st/bloomfilter/?n=600000000&p=&m=2048MB&k=4, the parameters
 // are picked so that the false-positive rate for mainnet is low enough.
-func newStateBloomWithSize(size uint64, logger *log.Logger) (*stateBloom, error) {
+func newStateBloomWithSize(size uint64) (*stateBloom, error) {
 	bloom, err := bloomfilter.New(size*1024*1024*8, 4)
 	if err != nil {
 		return nil, err
 	}
-	logger.WithField("size", common.StorageSize(float64(size))).Info("Initialized state bloom")
-	return &stateBloom{bloom: bloom, logger: logger}, nil
+	log.Info("Initialized state bloom", "size", common.StorageSize(float64(bloom.M()/8)))
+	return &stateBloom{bloom: bloom}, nil
 }
 
 // NewStateBloomFromDisk loads the state bloom from the given file.
 // In this case the assumption is held the bloom filter is complete.
-func NewStateBloomFromDisk(filename string, logger *log.Logger) (*stateBloom, error) {
+func NewStateBloomFromDisk(filename string) (*stateBloom, error) {
 	bloom, _, err := bloomfilter.ReadFile(filename)
 	if err != nil {
 		return nil, err
 	}
-	return &stateBloom{bloom: bloom, logger: logger}, nil
+	return &stateBloom{bloom: bloom}, nil
 }
 
 // Commit flushes the bloom filter content into the disk and marks the bloom
@@ -104,7 +93,7 @@ func (bloom *stateBloom) Commit(filename, tempname string) error {
 	}
 	f.Close()
 
-	// Move the teporary file into it's final location
+	// Move the temporary file into it's final location
 	return os.Rename(tempname, filename)
 }
 
@@ -117,10 +106,10 @@ func (bloom *stateBloom) Put(key []byte, value []byte) error {
 		if !isCode {
 			return errors.New("invalid entry")
 		}
-		bloom.bloom.Add(stateBloomHasher(codeKey))
+		bloom.bloom.AddHash(stateBloomHash(codeKey))
 		return nil
 	}
-	bloom.bloom.Add(stateBloomHasher(key))
+	bloom.bloom.AddHash(stateBloomHash(key))
 	return nil
 }
 
@@ -131,6 +120,6 @@ func (bloom *stateBloom) Delete(key []byte) error { panic("not supported") }
 // reports whether the key is contained.
 // - If it says yes, the key may be contained
 // - If it says no, the key is definitely not contained.
-func (bloom *stateBloom) Contain(key []byte) (bool, error) {
-	return bloom.bloom.Contains(stateBloomHasher(key)), nil
+func (bloom *stateBloom) Contain(key []byte) bool {
+	return bloom.bloom.ContainsHash(stateBloomHash(key))
 }

@@ -17,18 +17,17 @@
 package snapshot
 
 import (
-	"bytes"
 	"encoding/binary"
 	"errors"
 	"fmt"
 	"math"
 	"runtime"
-	"runtime/debug"
 	"sync"
 	"time"
 
 	"github.com/dominant-strategies/go-quai/common"
 	"github.com/dominant-strategies/go-quai/core/rawdb"
+	"github.com/dominant-strategies/go-quai/core/types"
 	"github.com/dominant-strategies/go-quai/ethdb"
 	"github.com/dominant-strategies/go-quai/log"
 	"github.com/dominant-strategies/go-quai/rlp"
@@ -44,22 +43,12 @@ type trieKV struct {
 type (
 	// trieGeneratorFn is the interface of trie generation which can
 	// be implemented by different trie algorithm.
-	trieGeneratorFn func(db ethdb.KeyValueWriter, in chan (trieKV), out chan (common.Hash))
+	trieGeneratorFn func(db ethdb.KeyValueWriter, scheme string, owner common.Hash, in chan (trieKV), out chan (common.Hash))
 
 	// leafCallbackFn is the callback invoked at the leaves of the trie,
 	// returns the subtrie root with the specified subtrie identifier.
 	leafCallbackFn func(db ethdb.KeyValueWriter, accountHash, codeHash common.Hash, stat *generateStats) (common.Hash, error)
 )
-
-// GenerateAccountTrieRoot takes an account iterator and reproduces the root hash.
-func GenerateAccountTrieRoot(it AccountIterator, logger *log.Logger) (common.Hash, error) {
-	return generateTrieRoot(nil, it, common.Hash{}, stackTrieGenerate, nil, newGenerateStats(logger), true)
-}
-
-// GenerateStorageTrieRoot takes a storage iterator and reproduces the root hash.
-func GenerateStorageTrieRoot(account common.Hash, it StorageIterator, logger *log.Logger) (common.Hash, error) {
-	return generateTrieRoot(nil, it, account, stackTrieGenerate, nil, newGenerateStats(logger), true)
-}
 
 // GenerateTrie takes the whole snapshot tree as the input, traverses all the
 // accounts as well as the corresponding storages and regenerate the whole state
@@ -72,9 +61,10 @@ func GenerateTrie(snaptree *Tree, root common.Hash, src ethdb.Database, dst ethd
 	}
 	defer acctIt.Release()
 
-	got, err := generateTrieRoot(dst, acctIt, common.Hash{}, stackTrieGenerate, func(dst ethdb.KeyValueWriter, accountHash, codeHash common.Hash, stat *generateStats) (common.Hash, error) {
+	scheme := snaptree.triedb.Scheme()
+	got, err := generateTrieRoot(dst, scheme, acctIt, common.Hash{}, stackTrieGenerate, func(dst ethdb.KeyValueWriter, accountHash, codeHash common.Hash, stat *generateStats) (common.Hash, error) {
 		// Migrate the code first, commit the contract code into the tmp db.
-		if codeHash != emptyCode {
+		if codeHash != types.EmptyCodeHash {
 			code := rawdb.ReadCode(src, codeHash)
 			if len(code) == 0 {
 				return common.Hash{}, errors.New("failed to read contract code")
@@ -88,12 +78,12 @@ func GenerateTrie(snaptree *Tree, root common.Hash, src ethdb.Database, dst ethd
 		}
 		defer storageIt.Release()
 
-		hash, err := generateTrieRoot(dst, storageIt, accountHash, stackTrieGenerate, nil, stat, false)
+		hash, err := generateTrieRoot(dst, scheme, storageIt, accountHash, stackTrieGenerate, nil, stat, false)
 		if err != nil {
 			return common.Hash{}, err
 		}
 		return hash, nil
-	}, newGenerateStats(src.Logger()), true)
+	}, newGenerateStats(), true)
 
 	if err != nil {
 		return err
@@ -117,17 +107,14 @@ type generateStats struct {
 	slotsHead  map[common.Hash]common.Hash // Slot head for accounts being crawled
 
 	lock sync.RWMutex
-
-	logger *log.Logger
 }
 
 // newGenerateStats creates a new generator stats.
-func newGenerateStats(logger *log.Logger) *generateStats {
+func newGenerateStats() *generateStats {
 	return &generateStats{
 		slotsStart: make(map[common.Hash]time.Time),
 		slotsHead:  make(map[common.Hash]common.Hash),
 		start:      time.Now(),
-		logger:     logger,
 	}
 }
 
@@ -140,7 +127,7 @@ func (stat *generateStats) progressAccounts(account common.Hash, done uint64) {
 	stat.head = account
 }
 
-// finishAccounts updates the gemerator stats for the finished account range.
+// finishAccounts updates the generator stats for the finished account range.
 func (stat *generateStats) finishAccounts(done uint64) {
 	stat.lock.Lock()
 	defer stat.lock.Unlock()
@@ -207,7 +194,7 @@ func (stat *generateStats) report() {
 			}...)
 		}
 	}
-	stat.logger.WithField("ctx", ctx).Info("Iterating state snapshot")
+	log.Info("Iterating state snapshot", ctx...)
 }
 
 // reportDone prints the last log when the whole generation is finished.
@@ -221,7 +208,7 @@ func (stat *generateStats) reportDone() {
 		ctx = append(ctx, []interface{}{"slots", stat.slots}...)
 	}
 	ctx = append(ctx, []interface{}{"elapsed", common.PrettyDuration(time.Since(stat.start))}...)
-	stat.logger.WithField("ctx", ctx).Info("Iterated snapshot")
+	log.Info("Iterated snapshot", ctx...)
 }
 
 // runReport periodically prints the progress information.
@@ -246,7 +233,7 @@ func runReport(stats *generateStats, stop chan bool) {
 // generateTrieRoot generates the trie hash based on the snapshot iterator.
 // It can be used for generating account trie, storage trie or even the
 // whole state which connects the accounts and the corresponding storages.
-func generateTrieRoot(db ethdb.KeyValueWriter, it Iterator, account common.Hash, generatorFn trieGeneratorFn, leafCallback leafCallbackFn, stats *generateStats, report bool) (common.Hash, error) {
+func generateTrieRoot(db ethdb.KeyValueWriter, scheme string, it Iterator, account common.Hash, generatorFn trieGeneratorFn, leafCallback leafCallbackFn, stats *generateStats, report bool) (common.Hash, error) {
 	var (
 		in      = make(chan trieKV)         // chan to pass leaves
 		out     = make(chan common.Hash, 1) // chan to collect result
@@ -256,30 +243,13 @@ func generateTrieRoot(db ethdb.KeyValueWriter, it Iterator, account common.Hash,
 	// Spin up a go-routine for trie hash re-generation
 	wg.Add(1)
 	go func() {
-		defer func() {
-			if r := recover(); r != nil {
-				db.Logger().WithFields(log.Fields{
-					"error":      r,
-					"stacktrace": string(debug.Stack()),
-					"account":    account,
-				}).Error("Go-Quai Panicked")
-			}
-		}()
 		defer wg.Done()
-		generatorFn(db, in, out)
+		generatorFn(db, scheme, account, in, out)
 	}()
 	// Spin up a go-routine for progress logging
 	if report && stats != nil {
 		wg.Add(1)
 		go func() {
-			defer func() {
-				if r := recover(); r != nil {
-					db.Logger().WithFields(log.Fields{
-						"error":      r,
-						"stacktrace": string(debug.Stack()),
-					}).Error("Go-Quai Panicked")
-				}
-			}()
 			defer wg.Done()
 			runReport(stats, stoplog)
 		}()
@@ -320,7 +290,7 @@ func generateTrieRoot(db ethdb.KeyValueWriter, it Iterator, account common.Hash,
 				fullData []byte
 			)
 			if leafCallback == nil {
-				fullData, err = FullAccountRLP(it.(AccountIterator).Account())
+				fullData, err = types.FullAccountRLP(it.(AccountIterator).Account())
 				if err != nil {
 					return stop(err)
 				}
@@ -332,25 +302,17 @@ func generateTrieRoot(db ethdb.KeyValueWriter, it Iterator, account common.Hash,
 					return stop(err)
 				}
 				// Fetch the next account and process it concurrently
-				account, err := FullAccount(it.(AccountIterator).Account())
+				account, err := types.FullAccount(it.(AccountIterator).Account())
 				if err != nil {
 					return stop(err)
 				}
 				go func(hash common.Hash) {
-					defer func() {
-						if r := recover(); r != nil {
-							db.Logger().WithFields(log.Fields{
-								"error":      r,
-								"stacktrace": string(debug.Stack()),
-							}).Error("Go-Quai Panicked")
-						}
-					}()
 					subroot, err := leafCallback(db, hash, common.BytesToHash(account.CodeHash), stats)
 					if err != nil {
 						results <- err
 						return
 					}
-					if !bytes.Equal(account.Root, subroot.Bytes()) {
+					if account.Root != subroot {
 						results <- fmt.Errorf("invalid subroot(path %x), want %x, have %x", hash, account.Root, subroot)
 						return
 					}
@@ -389,16 +351,16 @@ func generateTrieRoot(db ethdb.KeyValueWriter, it Iterator, account common.Hash,
 	return stop(nil)
 }
 
-func stackTrieGenerate(db ethdb.KeyValueWriter, in chan trieKV, out chan common.Hash) {
-	t := trie.NewStackTrie(db)
+func stackTrieGenerate(db ethdb.KeyValueWriter, scheme string, owner common.Hash, in chan trieKV, out chan common.Hash) {
+	var onTrieNode trie.OnTrieNode
+	if db != nil {
+		onTrieNode = func(path []byte, hash common.Hash, blob []byte) {
+			rawdb.WriteTrieNode(db, owner, path, hash, blob, scheme)
+		}
+	}
+	t := trie.NewStackTrie(onTrieNode)
 	for leaf := range in {
-		t.TryUpdate(leaf.key[:], leaf.value)
+		t.Update(leaf.key[:], leaf.value)
 	}
-	var root common.Hash
-	if db == nil {
-		root = t.Hash()
-	} else {
-		root, _ = t.Commit()
-	}
-	out <- root
+	out <- t.Hash()
 }
