@@ -17,23 +17,28 @@
 package state
 
 import (
-	"github.com/dominant-strategies/go-quai/common"
+	"fmt"
+	"maps"
+	"slices"
+	"strings"
+
+	"github.com/ethereum/go-ethereum/common"
 )
 
 type accessList struct {
-	addresses map[common.AddressBytes]int
+	addresses map[common.Address]int
 	slots     []map[common.Hash]struct{}
 }
 
 // ContainsAddress returns true if the address is in the access list.
-func (al *accessList) ContainsAddress(address common.AddressBytes) bool {
+func (al *accessList) ContainsAddress(address common.Address) bool {
 	_, ok := al.addresses[address]
 	return ok
 }
 
 // Contains checks if a slot within an account is present in the access list, returning
 // separate flags for the presence of the account and the slot respectively.
-func (al *accessList) Contains(address common.AddressBytes, slot common.Hash) (addressPresent bool, slotPresent bool) {
+func (al *accessList) Contains(address common.Address, slot common.Hash) (addressPresent bool, slotPresent bool) {
 	idx, ok := al.addresses[address]
 	if !ok {
 		// no such address (and hence zero slots)
@@ -50,30 +55,24 @@ func (al *accessList) Contains(address common.AddressBytes, slot common.Hash) (a
 // newAccessList creates a new accessList.
 func newAccessList() *accessList {
 	return &accessList{
-		addresses: make(map[common.AddressBytes]int),
+		addresses: make(map[common.Address]int),
 	}
 }
 
 // Copy creates an independent copy of an accessList.
-func (a *accessList) Copy() *accessList {
+func (al *accessList) Copy() *accessList {
 	cp := newAccessList()
-	for k, v := range a.addresses {
-		cp.addresses[k] = v
-	}
-	cp.slots = make([]map[common.Hash]struct{}, len(a.slots))
-	for i, slotMap := range a.slots {
-		newSlotmap := make(map[common.Hash]struct{}, len(slotMap))
-		for k := range slotMap {
-			newSlotmap[k] = struct{}{}
-		}
-		cp.slots[i] = newSlotmap
+	cp.addresses = maps.Clone(al.addresses)
+	cp.slots = make([]map[common.Hash]struct{}, len(al.slots))
+	for i, slotMap := range al.slots {
+		cp.slots[i] = maps.Clone(slotMap)
 	}
 	return cp
 }
 
 // AddAddress adds an address to the access list, and returns 'true' if the operation
 // caused a change (addr was not previously in the list).
-func (al *accessList) AddAddress(address common.AddressBytes) bool {
+func (al *accessList) AddAddress(address common.Address) bool {
 	if _, present := al.addresses[address]; present {
 		return false
 	}
@@ -86,7 +85,7 @@ func (al *accessList) AddAddress(address common.AddressBytes) bool {
 // - address added
 // - slot added
 // For any 'true' value returned, a corresponding journal entry must be made.
-func (al *accessList) AddSlot(address common.AddressBytes, slot common.Hash) (addrChange bool, slotChange bool) {
+func (al *accessList) AddSlot(address common.Address, slot common.Hash) (addrChange bool, slotChange bool) {
 	idx, addrPresent := al.addresses[address]
 	if !addrPresent || idx == -1 {
 		// Address not present, or addr present but no slots there
@@ -110,7 +109,7 @@ func (al *accessList) AddSlot(address common.AddressBytes, slot common.Hash) (ad
 // This operation needs to be performed in the same order as the addition happened.
 // This method is meant to be used  by the journal, which maintains ordering of
 // operations.
-func (al *accessList) DeleteSlot(address common.AddressBytes, slot common.Hash) {
+func (al *accessList) DeleteSlot(address common.Address, slot common.Hash) {
 	idx, addrOk := al.addresses[address]
 	// There are two ways this can fail
 	if !addrOk {
@@ -131,6 +130,35 @@ func (al *accessList) DeleteSlot(address common.AddressBytes, slot common.Hash) 
 // needs to be performed in the same order as the addition happened.
 // This method is meant to be used  by the journal, which maintains ordering of
 // operations.
-func (al *accessList) DeleteAddress(address common.AddressBytes) {
+func (al *accessList) DeleteAddress(address common.Address) {
 	delete(al.addresses, address)
+}
+
+// Equal returns true if the two access lists are identical
+func (al *accessList) Equal(other *accessList) bool {
+	if !maps.Equal(al.addresses, other.addresses) {
+		return false
+	}
+	return slices.EqualFunc(al.slots, other.slots, maps.Equal)
+}
+
+// PrettyPrint prints the contents of the access list in a human-readable form
+func (al *accessList) PrettyPrint() string {
+	out := new(strings.Builder)
+	var sortedAddrs []common.Address
+	for addr := range al.addresses {
+		sortedAddrs = append(sortedAddrs, addr)
+	}
+	slices.SortFunc(sortedAddrs, common.Address.Cmp)
+	for _, addr := range sortedAddrs {
+		idx := al.addresses[addr]
+		fmt.Fprintf(out, "%#x : (idx %d)\n", addr, idx)
+		if idx >= 0 {
+			slotmap := al.slots[idx]
+			for h := range slotmap {
+				fmt.Fprintf(out, "    %#x\n", h)
+			}
+		}
+	}
+	return out.String()
 }

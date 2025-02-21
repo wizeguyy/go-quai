@@ -177,7 +177,7 @@ func New(file string, cache int, handles int, namespace string, readonly bool, l
 			WriteStallEnd:   db.onWriteStallEnd,
 		},
 	}
-	// Disable seek compaction explicitly. Check https://github.com/ethereum/go-ethereum/pull/20130
+	// Disable seek compaction explicitly. Check https://github.com/dominant-strategies/go-quai/pull/20130
 	// for more details.
 	opt.Experimental.ReadSamplingMultiplier = -1
 

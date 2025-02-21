@@ -137,8 +137,18 @@ func BytesToAddress(b []byte, nodeLocation Location) Address {
 	}
 }
 
+func UncheckedBytesToAddress(b []byte) Address {
+	var i InternalAddress
+	i.setBytes(b)
+	return Address{&i}
+}
+
 func Bytes20ToAddress(b [20]byte, nodeLocation Location) Address {
 	return BytesToAddress(b[:], nodeLocation)
+}
+
+func UncheckedBytes20ToAddress(b [20]byte) Address {
+	return UncheckedBytesToAddress(b[:])
 }
 
 func NewAddressFromData(inner AddressData) Address {

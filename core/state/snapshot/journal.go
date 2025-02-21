@@ -25,16 +25,19 @@ import (
 	"time"
 
 	"github.com/VictoriaMetrics/fastcache"
-
-	"github.com/dominant-strategies/go-quai/common"
-	"github.com/dominant-strategies/go-quai/core/rawdb"
-	"github.com/dominant-strategies/go-quai/ethdb"
-	"github.com/dominant-strategies/go-quai/log"
-	"github.com/dominant-strategies/go-quai/rlp"
-	"github.com/dominant-strategies/go-quai/trie"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/rawdb"
+	"github.com/ethereum/go-ethereum/ethdb"
+	"github.com/ethereum/go-ethereum/log"
+	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/ethereum/go-ethereum/triedb"
 )
 
-const journalVersion uint64 = 0
+const (
+	journalV0             uint64 = 0 // initial version
+	journalV1             uint64 = 1 // current version, with destruct flag (in diff layers) removed
+	journalCurrentVersion        = journalV1
+)
 
 // journalGenerator is a disk layer entry containing the generator progress marker.
 type journalGenerator struct {
@@ -67,6 +70,29 @@ type journalStorage struct {
 	Vals [][]byte
 }
 
+func ParseGeneratorStatus(generatorBlob []byte) string {
+	if len(generatorBlob) == 0 {
+		return ""
+	}
+	var generator journalGenerator
+	if err := rlp.DecodeBytes(generatorBlob, &generator); err != nil {
+		log.Warn("failed to decode snapshot generator", "err", err)
+		return ""
+	}
+	// Figure out whether we're after or within an account
+	var m string
+	switch marker := generator.Marker; len(marker) {
+	case common.HashLength:
+		m = fmt.Sprintf("at %#x", marker)
+	case 2 * common.HashLength:
+		m = fmt.Sprintf("in %#x at %#x", marker[:common.HashLength], marker[common.HashLength:])
+	default:
+		m = fmt.Sprintf("%#x", marker)
+	}
+	return fmt.Sprintf(`Done: %v, Accounts: %d, Slots: %d, Storage: %d, Marker: %s`,
+		generator.Done, generator.Accounts, generator.Slots, generator.Storage, m)
+}
+
 // loadAndParseJournal tries to parse the snapshot journal in latest format.
 func loadAndParseJournal(db ethdb.KeyValueStore, base *diskLayer) (snapshot, journalGenerator, error) {
 	// Retrieve the disk layer generator. It must exist, no matter the
@@ -81,65 +107,24 @@ func loadAndParseJournal(db ethdb.KeyValueStore, base *diskLayer) (snapshot, jou
 		return nil, journalGenerator{}, fmt.Errorf("failed to decode snapshot generator: %v", err)
 	}
 	// Retrieve the diff layer journal. It's possible that the journal is
-	// not existent, e.g. the disk layer is generating while that the Quai
+	// not existent, e.g. the disk layer is generating while that the Geth
 	// crashes without persisting the diff journal.
 	// So if there is no journal, or the journal is invalid(e.g. the journal
 	// is not matched with disk layer; or the it's the legacy-format journal,
 	// etc.), we just discard all diffs and try to recover them later.
-	journal := rawdb.ReadSnapshotJournal(db)
-	if len(journal) == 0 {
-		db.Logger().WithFields(log.Fields{
-			"diskroot": base.root,
-			"diffs":    "missing",
-		}).Warn("Loaded snapshot journal")
-		return base, generator, nil
-	}
-	r := rlp.NewStream(bytes.NewReader(journal), 0)
-
-	// Firstly, resolve the first element as the journal version
-	version, err := r.Uint()
+	var current snapshot = base
+	err := iterateJournal(db, func(parent common.Hash, root common.Hash, accountData map[common.Hash][]byte, storageData map[common.Hash]map[common.Hash][]byte) error {
+		current = newDiffLayer(current, root, accountData, storageData)
+		return nil
+	})
 	if err != nil {
-		db.Logger().WithField("err", err).Warn("Failed to resolve the journal version")
 		return base, generator, nil
 	}
-	if version != journalVersion {
-		db.Logger().WithFields(log.Fields{
-			"required": journalVersion,
-			"got":      version,
-		}).Warn("Discarded the snapshot journal with wrong version")
-		return base, generator, nil
-	}
-	// Secondly, resolve the disk layer root, ensure it's continuous
-	// with disk layer. Note now we can ensure it's the snapshot journal
-	// correct version, so we expect everything can be resolved properly.
-	var root common.Hash
-	if err := r.Decode(&root); err != nil {
-		return nil, journalGenerator{}, errors.New("missing disk layer root")
-	}
-	// The diff journal is not matched with disk, discard them.
-	// It can happen that Quai crashes without persisting the latest
-	// diff journal.
-	if !bytes.Equal(root.Bytes(), base.root.Bytes()) {
-		db.Logger().WithFields(log.Fields{
-			"diskroot": base.root,
-			"diffs":    "unmatched",
-		}).Warn("Loaded snapshot journal")
-		return base, generator, nil
-	}
-	// Load all the snapshot diffs from the journal
-	snapshot, err := loadDiffLayer(base, r)
-	if err != nil {
-		return nil, journalGenerator{}, err
-	}
-	db.Logger().WithFields(log.Fields{
-		"diskroot": base.root,
-		"diffhead": snapshot.Root(),
-	}).Debug("Loaded snapshot journal")
-	return snapshot, generator, nil
+	return current, generator, nil
 }
 
 // loadSnapshot loads a pre-existing state snapshot backed by a key-value store.
-func loadSnapshot(diskdb ethdb.KeyValueStore, triedb *trie.Database, cache int, root common.Hash, recovery bool) (snapshot, bool, error) {
+func loadSnapshot(diskdb ethdb.KeyValueStore, triedb *triedb.Database, root common.Hash, cache int, recovery bool, noBuild bool) (snapshot, bool, error) {
 	// If snapshotting is disabled (initial sync in progress), don't do anything,
 	// wait for the chain to permit us to do something meaningful
 	if rawdb.ReadSnapshotDisabled(diskdb) {
@@ -159,14 +144,14 @@ func loadSnapshot(diskdb ethdb.KeyValueStore, triedb *trie.Database, cache int, 
 	}
 	snapshot, generator, err := loadAndParseJournal(diskdb, base)
 	if err != nil {
-		diskdb.Logger().WithField("err", err).Warn("Failed to load new-format journal")
+		log.Warn("Failed to load journal", "error", err)
 		return nil, false, err
 	}
 	// Entire snapshot journal loaded, sanity check the head. If the loaded
 	// snapshot is not matched with current state root, print a warning log
 	// or discard the entire snapshot it's legacy snapshot.
 	//
-	// Possible scenario: Quai was crashed without persisting journal and then
+	// Possible scenario: Geth was crashed without persisting journal and then
 	// restart, the head is rewound to the point with available state(trie)
 	// which is below the snapshot. In this case the snapshot can be recovered
 	// by re-executing blocks but right now it's unavailable.
@@ -181,18 +166,18 @@ func loadSnapshot(diskdb ethdb.KeyValueStore, triedb *trie.Database, cache int, 
 		// the disk layer is always higher than chain head. It can
 		// be eventually recovered when the chain head beyonds the
 		// disk layer.
-		diskdb.Logger().WithFields(log.Fields{
-			"snaproot":  head,
-			"chainroot": root,
-		}).Warn("Snapshot is not continuous with chain")
+		log.Warn("Snapshot is not continuous with chain", "snaproot", head, "chainroot", root)
 	}
-	// Everything loaded correctly, resume any suspended operations
+	// Load the disk layer status from the generator if it's not complete
 	if !generator.Done {
-		// Whether or not wiping was in progress, load any generator progress too
 		base.genMarker = generator.Marker
 		if base.genMarker == nil {
 			base.genMarker = []byte{}
 		}
+	}
+	// Everything loaded correctly, resume any suspended operations
+	// if the background generation is allowed
+	if !generator.Done && !noBuild {
 		base.genPending = make(chan struct{})
 		base.genAbort = make(chan chan *generatorStats)
 
@@ -211,60 +196,9 @@ func loadSnapshot(diskdb ethdb.KeyValueStore, triedb *trie.Database, cache int, 
 	return snapshot, false, nil
 }
 
-// loadDiffLayer reads the next sections of a snapshot journal, reconstructing a new
-// diff and verifying that it can be linked to the requested parent.
-func loadDiffLayer(parent snapshot, r *rlp.Stream) (snapshot, error) {
-	// Read the next diff journal entry
-	var root common.Hash
-	if err := r.Decode(&root); err != nil {
-		// The first read may fail with EOF, marking the end of the journal
-		if err == io.EOF {
-			return parent, nil
-		}
-		return nil, fmt.Errorf("load diff root: %v", err)
-	}
-	var destructs []journalDestruct
-	if err := r.Decode(&destructs); err != nil {
-		return nil, fmt.Errorf("load diff destructs: %v", err)
-	}
-	destructSet := make(map[common.Hash]struct{})
-	for _, entry := range destructs {
-		destructSet[entry.Hash] = struct{}{}
-	}
-	var accounts []journalAccount
-	if err := r.Decode(&accounts); err != nil {
-		return nil, fmt.Errorf("load diff accounts: %v", err)
-	}
-	accountData := make(map[common.Hash][]byte)
-	for _, entry := range accounts {
-		if len(entry.Blob) > 0 { // RLP loses nil-ness, but `[]byte{}` is not a valid item, so reinterpret that
-			accountData[entry.Hash] = entry.Blob
-		} else {
-			accountData[entry.Hash] = nil
-		}
-	}
-	var storage []journalStorage
-	if err := r.Decode(&storage); err != nil {
-		return nil, fmt.Errorf("load diff storage: %v", err)
-	}
-	storageData := make(map[common.Hash]map[common.Hash][]byte)
-	for _, entry := range storage {
-		slots := make(map[common.Hash][]byte)
-		for i, key := range entry.Keys {
-			if len(entry.Vals[i]) > 0 { // RLP loses nil-ness, but `[]byte{}` is not a valid item, so reinterpret that
-				slots[key] = entry.Vals[i]
-			} else {
-				slots[key] = nil
-			}
-		}
-		storageData[entry.Hash] = slots
-	}
-	return loadDiffLayer(newDiffLayer(parent, root, destructSet, accountData, storageData), r)
-}
-
 // Journal terminates any in-progress snapshot generation, also implicitly pushing
 // the progress into the database.
-func (dl *diskLayer) Journal(buffer *bytes.Buffer, logger *log.Logger) (common.Hash, error) {
+func (dl *diskLayer) Journal(buffer *bytes.Buffer) (common.Hash, error) {
 	// If the snapshot is currently being generated, abort it
 	var stats *generatorStats
 	if dl.genAbort != nil {
@@ -285,15 +219,15 @@ func (dl *diskLayer) Journal(buffer *bytes.Buffer, logger *log.Logger) (common.H
 	// Ensure the generator stats is written even if none was ran this cycle
 	journalProgress(dl.diskdb, dl.genMarker, stats)
 
-	dl.diskdb.Logger().WithField("root", dl.root).Debug("Journalled disk layer")
+	log.Debug("Journalled disk layer", "root", dl.root)
 	return dl.root, nil
 }
 
 // Journal writes the memory layer contents into a buffer to be stored in the
 // database as the snapshot journal.
-func (dl *diffLayer) Journal(buffer *bytes.Buffer, logger *log.Logger) (common.Hash, error) {
+func (dl *diffLayer) Journal(buffer *bytes.Buffer) (common.Hash, error) {
 	// Journal the parent first
-	base, err := dl.parent.Journal(buffer, logger)
+	base, err := dl.parent.Journal(buffer)
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -308,16 +242,12 @@ func (dl *diffLayer) Journal(buffer *bytes.Buffer, logger *log.Logger) (common.H
 	if err := rlp.Encode(buffer, dl.root); err != nil {
 		return common.Hash{}, err
 	}
-	destructs := make([]journalDestruct, 0, len(dl.destructSet))
-	for hash := range dl.destructSet {
-		destructs = append(destructs, journalDestruct{Hash: hash})
-	}
-	if err := rlp.Encode(buffer, destructs); err != nil {
-		return common.Hash{}, err
-	}
 	accounts := make([]journalAccount, 0, len(dl.accountData))
 	for hash, blob := range dl.accountData {
-		accounts = append(accounts, journalAccount{Hash: hash, Blob: blob})
+		accounts = append(accounts, journalAccount{
+			Hash: hash,
+			Blob: blob,
+		})
 	}
 	if err := rlp.Encode(buffer, accounts); err != nil {
 		return common.Hash{}, err
@@ -335,9 +265,121 @@ func (dl *diffLayer) Journal(buffer *bytes.Buffer, logger *log.Logger) (common.H
 	if err := rlp.Encode(buffer, storage); err != nil {
 		return common.Hash{}, err
 	}
-	logger.WithFields(log.Fields{
-		"root":   dl.root,
-		"parent": dl.parent.Root(),
-	}).Debug("Journalled diff layer")
+	log.Debug("Journalled diff layer", "root", dl.root, "parent", dl.parent.Root())
 	return base, nil
+}
+
+// journalCallback is a function which is invoked by iterateJournal, every
+// time a difflayer is loaded from disk.
+type journalCallback = func(parent common.Hash, root common.Hash, accounts map[common.Hash][]byte, storage map[common.Hash]map[common.Hash][]byte) error
+
+// iterateJournal iterates through the journalled difflayers, loading them from
+// the database, and invoking the callback for each loaded layer.
+// The order is incremental; starting with the bottom-most difflayer, going towards
+// the most recent layer.
+// This method returns error either if there was some error reading from disk,
+// OR if the callback returns an error when invoked.
+func iterateJournal(db ethdb.KeyValueReader, callback journalCallback) error {
+	journal := rawdb.ReadSnapshotJournal(db)
+	if len(journal) == 0 {
+		log.Warn("Loaded snapshot journal", "diffs", "missing")
+		return nil
+	}
+	r := rlp.NewStream(bytes.NewReader(journal), 0)
+	// Firstly, resolve the first element as the journal version
+	version, err := r.Uint64()
+	if err != nil {
+		log.Warn("Failed to resolve the journal version", "error", err)
+		return errors.New("failed to resolve journal version")
+	}
+	if version != journalV0 && version != journalCurrentVersion {
+		log.Warn("Discarded journal with wrong version", "required", journalCurrentVersion, "got", version)
+		return errors.New("wrong journal version")
+	}
+	// Secondly, resolve the disk layer root, ensure it's continuous
+	// with disk layer. Note now we can ensure it's the snapshot journal
+	// correct version, so we expect everything can be resolved properly.
+	var parent common.Hash
+	if err := r.Decode(&parent); err != nil {
+		return errors.New("missing disk layer root")
+	}
+	if baseRoot := rawdb.ReadSnapshotRoot(db); baseRoot != parent {
+		log.Warn("Loaded snapshot journal", "diskroot", baseRoot, "diffs", "unmatched")
+		return errors.New("mismatched disk and diff layers")
+	}
+	for {
+		var (
+			root        common.Hash
+			accounts    []journalAccount
+			storage     []journalStorage
+			accountData = make(map[common.Hash][]byte)
+			storageData = make(map[common.Hash]map[common.Hash][]byte)
+		)
+		// Read the next diff journal entry
+		if err := r.Decode(&root); err != nil {
+			// The first read may fail with EOF, marking the end of the journal
+			if errors.Is(err, io.EOF) {
+				return nil
+			}
+			return fmt.Errorf("load diff root: %v", err)
+		}
+		// If a legacy journal is detected, decode the destruct set from the stream.
+		// The destruct set has been deprecated. If the journal contains non-empty
+		// destruct set, then it is deemed incompatible.
+		//
+		// Since self-destruction has been deprecated following the cancun fork,
+		// the destruct set is expected to be nil for layers above the fork block.
+		// However, an exception occurs during contract deployment: pre-funded accounts
+		// may self-destruct, causing accounts with non-zero balances to be removed
+		// from the state. For example,
+		// https://etherscan.io/tx/0xa087333d83f0cd63b96bdafb686462e1622ce25f40bd499e03efb1051f31fe49).
+		//
+		// For nodes with a fully synced state, the legacy journal is likely compatible
+		// with the updated definition, eliminating the need for regeneration. Unfortunately,
+		// nodes performing a full sync of historical chain segments or encountering
+		// pre-funded account deletions may face incompatibilities, leading to automatic
+		// snapshot regeneration.
+		//
+		// This approach minimizes snapshot regeneration for Geth nodes upgrading from a
+		// legacy version that are already synced. The workaround can be safely removed
+		// after the next hard fork.
+		if version == journalV0 {
+			var destructs []journalDestruct
+			if err := r.Decode(&destructs); err != nil {
+				return fmt.Errorf("load diff destructs: %v", err)
+			}
+			if len(destructs) > 0 {
+				log.Warn("Incompatible legacy journal detected", "version", journalV0)
+				return fmt.Errorf("incompatible legacy journal detected")
+			}
+		}
+		if err := r.Decode(&accounts); err != nil {
+			return fmt.Errorf("load diff accounts: %v", err)
+		}
+		if err := r.Decode(&storage); err != nil {
+			return fmt.Errorf("load diff storage: %v", err)
+		}
+		for _, entry := range accounts {
+			if len(entry.Blob) > 0 { // RLP loses nil-ness, but `[]byte{}` is not a valid item, so reinterpret that
+				accountData[entry.Hash] = entry.Blob
+			} else {
+				accountData[entry.Hash] = nil
+			}
+		}
+		for _, entry := range storage {
+			slots := make(map[common.Hash][]byte)
+			for i, key := range entry.Keys {
+				if len(entry.Vals[i]) > 0 { // RLP loses nil-ness, but `[]byte{}` is not a valid item, so reinterpret that
+					slots[key] = entry.Vals[i]
+				} else {
+					slots[key] = nil
+				}
+			}
+			storageData[entry.Hash] = slots
+		}
+		if err := callback(parent, root, accountData, storageData); err != nil {
+			return err
+		}
+		parent = root
+	}
 }
